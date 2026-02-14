@@ -105,6 +105,18 @@ export function render(config, view = 'full') {
     output.push(DIVIDER);
   }
 
+  // Last 10 nights — odd night reminder
+  if (currentDay >= 20) {
+    const oddNights = [20, 22, 24, 26, 28];
+    if (oddNights.includes(currentDay)) {
+      output.push('');
+      output.push(chalk.bold.magenta('✨ Tonight is an odd night — seek Laylatul Qadr'));
+    } else {
+      output.push('');
+      output.push(chalk.dim('🌙 Tonight is not an odd night'));
+    }
+  }
+
   // Eid prompt
   if (!config.eidDate && currentDay >= 28) {
     output.push('');
