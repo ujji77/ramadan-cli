@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, openSync, createReadStream } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
-import { createInterface } from 'readline';
 
 const home = homedir();
 const claudeDir = join(home, '.claude');
@@ -77,53 +76,17 @@ function createSkill() {
   configureClaudeMd();
 }
 
-function isTTY() {
-  try {
-    openSync('/dev/tty', 'r');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function ask(question) {
-  const tty = createReadStream('/dev/tty');
-  const rl = createInterface({ input: tty, output: process.stderr });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      tty.destroy();
-      resolve(answer.trim().toLowerCase());
-    });
-  });
-}
-
-async function main() {
+function main() {
   log('');
   log('   🌙 Ramadan CLI installed successfully!');
   log('');
 
-  // Non-interactive environment (CI, no TTY available) — skip prompts
-  if (!isTTY()) {
-    log('   Run `npm rebuild ramadan-cal` in an interactive terminal to set up Claude Code.');
-    log('');
-    return;
-  }
-
-  // Step 1: Check if Claude Code is installed
   if (!isClaudeInstalled()) {
-    log('   Claude Code not detected on your PATH.');
-    log('   Run `npm rebuild ramadan-cal` to set up Claude Code integration later.');
-    log('');
     log('   ➜  Run `ramadan` to get started.');
     log('');
     return;
   }
 
-  log('   ✓ Claude Code detected');
-  log('');
-
-  // Already fully set up?
   if (isSkillInstalled() && isClaudeMdConfigured()) {
     log('   ✓ Claude Code integration already configured');
     log('   Type "ramadan" or "/ramadan" in Claude Code.');
@@ -131,45 +94,15 @@ async function main() {
     return;
   }
 
-  // Step 2: Check if skills folder exists
-  if (!existsSync(skillsDir)) {
-    // Skills folder doesn't exist — ask to create it
-    const answer = await ask('   Create a Claude Code skills folder and add the ramadan skill? (y/n) ');
-    log('');
-    if (answer === 'y' || answer === 'yes') {
-      createSkill();
-      log('   ✓ Created ~/.claude/skills/ramadan/');
-      log('   ✓ Ramadan skill added');
-      log('');
-      log('   Type "ramadan" or "/ramadan" in Claude Code to use it.');
-    } else {
-      log('   Skipped. Run `npm rebuild ramadan-cal` or type `ramadan` directly in your terminal.');
-    }
-  } else {
-    // Skills folder exists — ask if they want the skill added
-    if (isSkillInstalled()) {
-      log('   ✓ Ramadan skill already installed');
-      configureClaudeMd();
-      log('   Type "ramadan" or "/ramadan" in Claude Code.');
-      log('');
-      return;
-    }
-
-    const answer = await ask('   Add the ramadan skill to Claude Code? (y/n) ');
-    log('');
-    if (answer === 'y' || answer === 'yes') {
-      createSkill();
-      log('   ✓ Ramadan skill added to ~/.claude/skills/');
-      log('');
-      log('   Type "ramadan" or "/ramadan" in Claude Code to use it.');
-    } else {
-      log('   Skipped. Run `npm rebuild ramadan-cal` or type `ramadan` directly in your terminal.');
-    }
+  try {
+    createSkill();
+    log('   ✓ Claude Code integration configured');
+    log('   Type "ramadan" or "/ramadan" in Claude Code.');
+  } catch {
+    log('   ✗ Could not set up Claude Code integration automatically.');
+    log('   Set it up manually: https://ramadan-cal-site.onrender.com/#troubleshooting');
   }
-
   log('');
 }
 
-main().catch(() => {
-  process.exit(0);
-});
+main();
