@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, createReadStream, createWriteStream, openSync, closeSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
@@ -77,33 +77,11 @@ function createSkill() {
   configureClaudeMd();
 }
 
-function canPrompt() {
-  try {
-    const fd = openSync('/dev/tty', 'r+');
-    closeSync(fd);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function ask(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
-    // Use /dev/tty so prompts work even when stdin is piped (npm install)
-    let ttyInput, ttyOutput;
-    try {
-      ttyInput = createReadStream('/dev/tty');
-      ttyOutput = createWriteStream('/dev/tty', { flags: 'a' });
-    } catch {
-      const rl = createInterface({ input: process.stdin, output: process.stderr });
-      rl.question(question, (answer) => { rl.close(); resolve(answer.trim().toLowerCase()); });
-      return;
-    }
-    const rl = createInterface({ input: ttyInput, output: ttyOutput });
     rl.question(question, (answer) => {
       rl.close();
-      ttyInput.destroy();
-      ttyOutput.destroy();
       resolve(answer.trim().toLowerCase());
     });
   });
@@ -113,6 +91,13 @@ async function main() {
   log('');
   log('   🌙 Ramadan CLI installed successfully!');
   log('');
+
+  // Non-interactive environment (CI, piped stdin) — skip prompts
+  if (!process.stdin.isTTY) {
+    log('   Run `npm rebuild ramadan-cal` in an interactive terminal to set up Claude Code.');
+    log('');
+    return;
+  }
 
   // Step 1: Check if Claude Code is installed
   if (!isClaudeInstalled()) {
@@ -131,13 +116,6 @@ async function main() {
   if (isSkillInstalled() && isClaudeMdConfigured()) {
     log('   ✓ Claude Code integration already configured');
     log('   Type "ramadan" or "/ramadan" in Claude Code.');
-    log('');
-    return;
-  }
-
-  // If we can't open a terminal for prompts, bail out gracefully
-  if (!canPrompt()) {
-    log('   Run `npm rebuild ramadan-cal` in your terminal to finish Claude Code setup.');
     log('');
     return;
   }
