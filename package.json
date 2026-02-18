@@ -1,6 +1,6 @@
 {
   "name": "ramadan-cal",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "🌙 A beautiful terminal Ramadan calendar with prayer times, daily progress, and Hijri date",
   "type": "module",
   "bin": {

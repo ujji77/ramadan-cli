@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, openSync, createReadStream } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
@@ -77,11 +77,22 @@ function createSkill() {
   configureClaudeMd();
 }
 
+function isTTY() {
+  try {
+    openSync('/dev/tty', 'r');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function ask(question) {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const tty = createReadStream('/dev/tty');
+  const rl = createInterface({ input: tty, output: process.stderr });
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
+      tty.destroy();
       resolve(answer.trim().toLowerCase());
     });
   });
@@ -92,8 +103,8 @@ async function main() {
   log('   🌙 Ramadan CLI installed successfully!');
   log('');
 
-  // Non-interactive environment (CI, piped stdin) — skip prompts
-  if (!process.stdin.isTTY) {
+  // Non-interactive environment (CI, no TTY available) — skip prompts
+  if (!isTTY()) {
     log('   Run `npm rebuild ramadan-cal` in an interactive terminal to set up Claude Code.');
     log('');
     return;
